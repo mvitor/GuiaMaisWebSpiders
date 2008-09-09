@@ -1,0 +1,4 @@
+fazer paginacao
+insercao_csv
+Acerta Módulo Spider
+documentacao
