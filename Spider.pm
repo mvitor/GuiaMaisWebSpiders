@@ -107,6 +107,7 @@ sub obter {
 	$browser->cookie_jar(HTTP::Cookies->new(file => "../data/cookies.txt", autosave => 1));
 	# Configura a requisi¿¿o
 	$req = HTTP::Request->new("GET", $url);
+	print $url.$/;
 	$req->headers->header(Referer => $self->{historico});
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $browser->request($req);
@@ -130,6 +131,7 @@ sub obter {
 		$self->log('error',"Timeout de numero ".$self->{num_timeout}."com url $url - ERR:".$resposta->message);
 		return 0;
 	}
+	return $resposta->content;
 }
 ################################################################################
 ################################################################################
@@ -146,94 +148,17 @@ sub retira_html {
 	return $str;
 }
 
+=head2
 
-################################################################################
-################################################################################
-# Usado p/ retirar ou substituir determinados caracteres de strings
-#
-# Sintaxe: $string = $self->dicionario($string_nao_formatada);
+Usado p/ retirar ou substituir determinados caracteres de strings
+
+=cut
+
 sub dicionario {
 	my $self = shift;
-	my $str = $_[0];
-
-	$str =~ s/&amp;/&/ig;
-	$str =~ s/&#34;/´´/g;
-	$str =~ s/&#39;/´/g;
-	$str =~ s/&#45;/\-/g;
-	$str =~ s/&#186;/o/g;
-	$str =~ s/&#224;/à/g;
-	$str =~ s/&#225;/á/g;
-	$str =~ s/&#226;/â/g;
-	$str =~ s/&#227;/ã/g;
-	$str =~ s/&#233;/é/g;
-	$str =~ s/&#234;/ê/g;
-	$str =~ s/&#237;/í/g;
-	$str =~ s/&#231;/ç/g;
-	$str =~ s/&#199;/Ç/g;
-	$str =~ s/&#193;/Á/g;
-	$str =~ s/&#194;/Â/g;
-	$str =~ s/&#195;/Ã/g;
-	$str =~ s/&#200;/É/g;
-	$str =~ s/&#201;/É/g;
-	$str =~ s/&#202;/Ê/g;
-	$str =~ s/&#205;/Í/g;
-	$str =~ s/&#211;/Ó/g;
-	$str =~ s/&#212;/Ô/g;
-	$str =~ s/&#213;/Õ/g;
-	#$str =~ s/&#218;/+/g;
-	$str =~ s/&#243;/ó/g;
-	$str =~ s/&#244;/ô/g;
-	$str =~ s/&#245;/õ/g;
-	$str =~ s/&#249;/ù/g;
-	$str =~ s/&#250;/ú/g;
-	$str =~ s/&#252;/ü/g;
-	$str =~ s/&#8211;/-/g;
-	$str =~ s/\&quot;/´´/g;
-	$str =~ s/\&quot/´´/g;
-	$str =~ s/\&acute;/´/g;
-	$str =~ s/ˆ/ê/g;
-	$str =~ s/‡/ç/g;
-	$str =~ s/İ/ã/g;
-	$str =~ s/‚/é/g;
-	$str =~ s/¢/ó/g;
-	$str =~ s/Æ/ã/g;
-	$str =~ s/“/ô/g;
-	$str =~ s/¡/í/g;
-	$str =~ s/ú/ú/g;
-	$str =~ s/£/ú/g;
-	$str =~ s/&eacute;/é/g;
-	$str =~ s/&ocirc;/ô/g;
-	$str =~ s/&aacute;/á/g;
-	$str =~ s/&uacute;/ú/g;
-	$str =~ s/&ccedil;/ç/ig;
-	$str =~ s/&atilde;/ã/ig;
-	$str =~ s/&otilde;/õ/ig;
-	$str =~ s/&aacute;/á/ig;
-	$str =~ s/&eacute;/é/ig;
-	$str =~ s/&iacute;/í/ig;
-	$str =~ s/&oacute;/ó/ig;
-	$str =~ s/&uacute;/ú/ig;
-	$str =~ s/&acirc;/â/ig;
-	$str =~ s/&ecirc;/ê/ig;
-	$str =~ s/&ocirc;/ô/ig;
-	$str =~ s/&nbsp;/ /ig;
-	$str =~ s/"/´´/g;
-	$str =~ s/”/´´/g;
-	$str =~ s/`/´/g;
-	$str =~ s/’/´/g;
-	$str =~ s/'/´/g;
-	$str =~ s/‘/´/g;
-	$str =~ s/\*//g;
-	$str =~ s/\(//g;
-	$str =~ s/\)//g;
-	$str =~ s/™/ /g;
-	$str =~ s/–/-/g;
-	$str =~ s/^\s+|\s*$//g;
-	$str =~ s/  / /g while ($str =~ /  /);
-	$str =~ s/&#946;/ß/g;
+	my $str = shift;
 	# Decodifica expressões em HTML
 	$str = HTML::Entities::decode_entities($str);
-
 	return $str;
 }
 
@@ -300,4 +225,17 @@ sub log		{
 	}
 	$self->{log}->$level($message);
 }
+=head2 ACESSORS
+
+=cut
+
+sub cats	{
+	my ($self) = @_;
+	return @{$self->{categorias}};
+}
+sub set_cats	{
+	my ($self,$cat_name,$cat_href)	= @_;
+	push(@{$self->{categorias}}, {name=>$cat_name,href=>$cat_href});
+}
+
 1;
