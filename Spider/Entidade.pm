@@ -11,8 +11,8 @@ sub dump	{
 	my $self = shift;
 	print "Nome: ".$self->nome.$/;
 	print "EndereÃo: ".$self->end.$/;
+	print "Telefone: ".$self->telefone.$/;
 	print "Descricao: ".$self->descricao.$/;
-#	print "Link: ".$self->link.$/;
 	print "URL: ".$self->url.$/;
 	print "URL Logotipo: ".$self->url_logo.$/x2;
 }

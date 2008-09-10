@@ -100,13 +100,21 @@ sub new {
 # Sintaxe: $string = $self->obter(url, flag_retorna, arquivo, tipo);
 
 sub obter {
-	my ($self,$url) = @_;
+	my $self = shift;
+	my $url = shift;
+#	my $attr = @_;
+	my $attr;
 	my ($req, $resposta, $cont, $req_inicio, $req_fim);
 	my $browser = LWP::UserAgent->new();
 	$browser->agent("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
 	$browser->cookie_jar(HTTP::Cookies->new(file => "../data/cookies.txt", autosave => 1));
-	# Configura a requisi¿¿o
-	$req = HTTP::Request->new("GET", $url);
+	if ($attr)	{
+		$req = HTTP::Request->new("POST",$url,$attr);
+	}
+	else	{
+		$req = HTTP::Request->new("GET",$url);
+	
+	}
 	print $url.$/;
 	$req->headers->header(Referer => $self->{historico});
 	for ($cont = 5; $cont > 0; $cont--) {
