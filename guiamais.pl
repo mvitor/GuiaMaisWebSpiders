@@ -9,7 +9,7 @@ use constant URL => 'http://www.guiamais.com.br/';
 
 # Recebe home
 my $spider = Spider::GuiaMais->new(name=>'guiamais');
-my $string = $spider->obter(URL,1);
+my $string = $spider->obter(URL);
 
 # Captura Categorias e respectivos links
 my $tree = HTML::TreeBuilder->new_from_content($string);
@@ -18,10 +18,11 @@ foreach (@cats)	{
 	my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
 	my $cat_name = $_->as_text;
 	$spider->set_cats($cat_name,URL.$cat_href);
+	last;
 }
 
 # Faz captura de dados através de método get_dados
-$spider->get_dados();
+$spider->get_dados_cat();
 
 	
 

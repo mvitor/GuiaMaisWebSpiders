@@ -10,7 +10,7 @@ use HTTP::Request::Common;
 use URI::file;
 use HTML::Entities;
 use Log::Log4perl;
-
+use Data::Dumper;
 =head1 NAME
 
 spiders.pm
@@ -46,6 +46,7 @@ sub new {
 	foreach (keys %attr)	{
 		$self->{$_} = $attr{$_};
 	}
+	$self->{page} = 0;
 	# Variáveis do Tk (janela, frames e labels)
 	$self->{janela} = MainWindow->new(-title => ucfirst($self->{nome}) . " - Spider");
 	$self->{icone} = $self->{janela}->Photo(-file => "spider.bmp");
@@ -102,23 +103,28 @@ sub new {
 sub obter {
 	my $self = shift;
 	my $url = shift;
-#	my $attr = @_;
-	my $attr;
+	my $attr = shift;
+	print $url.$/;
+	#print Dumper(%attr);
+
 	my ($req, $resposta, $cont, $req_inicio, $req_fim);
 	my $browser = LWP::UserAgent->new();
 	$browser->agent("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
-	$browser->cookie_jar(HTTP::Cookies->new(file => "../data/cookies.txt", autosave => 1));
+	$browser->cookie_jar(HTTP::Cookies->new(file => "cookies.txt", autosave => 1));
 	if ($attr)	{
-		$req = HTTP::Request->new("POST",$url,$attr);
+		use File::Slurp qw/write_file/;
+		write_file('saida.txt',Dumper($attr));
+		print "ATTR";
+		$req = HTTP::Request->new("POST",$url,[%$attr]);
 	}
 	else	{
 		$req = HTTP::Request->new("GET",$url);
 	
 	}
-	print $url.$/;
 	$req->headers->header(Referer => $self->{historico});
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $browser->request($req);
+		print "Erro: ".$resposta->status_line.$/;
 		last if ($resposta->is_success());
 		$self->{stat2}->configure(-text => "URL: tentativa " . $cont);
 		$self->{janela}->update;
@@ -201,17 +207,7 @@ Sintaxe: $self->log($level,$message);
 
 Os levels(níveis) são divididos na seguinte maneira:
 
-	$self->log('trace',$message); # Loga uma mensagem de trace
-
-	$self->log('debug',$message); # Loga uma mensagem de debug
-
-	$self->log('info',$message); # Loga uma mensagem de info
-
-	$self->log('warn',$message); # Loga uma mensagem de aviso
-
 	$self->log('error',$message); # Loga uma mensagem de erro
-
-	$self->log('fatal',$message); # Loga uma mensagem de erro fatal
 
 =cut
 
