@@ -13,6 +13,7 @@ sub dump	{
 	print "EndereÃo: ".$self->end.$/;
 	print "Telefone: ".$self->telefone.$/;
 	print "Descricao: ".$self->descricao.$/;
+	print "Categoria: ".$self->cat.$/;
 	print "URL: ".$self->url.$/;
 	print "URL Logotipo: ".$self->url_logo.$/x2;
 }
@@ -21,6 +22,9 @@ sub save_csv	{
 	open my $fh,'>>','entidades.csv';
 	print $fh join ', ', @{$self}{@atrr};print $fh $/;
 	close $fh;
+	$self->{num_ok}++;
+#	$SUPER->{prod2}->configure(-text=>$self->{num_ok});
+#	$self->{janela}->update;		
 }
 sub nome	{
 	my $self = shift;
@@ -33,6 +37,11 @@ sub end	{
 	return $self->_end_accessor(@_);
 }
 sub descricao	{
+	my $self = shift;
+	@_ = HTML::Entities::decode_entities(@_);
+	return $self->_descricao_accessor(@_);
+}
+sub cat	{
 	my $self = shift;
 	@_ = HTML::Entities::decode_entities(@_);
 	return $self->_descricao_accessor(@_);

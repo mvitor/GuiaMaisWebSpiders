@@ -14,6 +14,9 @@ my $string = $spider->obter(URL);
 # Captura Categorias e respectivos links
 my $tree = HTML::TreeBuilder->new_from_content($string);
 my @cats = $tree->look_down(_tag => 'a',class=>'lnk1L');
+
+$spider->log('info',@cats.' categorias localizados'); 
+
 foreach (@cats)	{
 	my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
 	my $cat_name = $_->as_text;

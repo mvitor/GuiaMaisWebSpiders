@@ -47,74 +47,19 @@ sub new {
 		$self->{$_} = $attr{$_};
 	}
 	$self->{page} = 0;
-	# Variáveis do Tk (janela, frames e labels)
-	$self->{janela} = MainWindow->new(-title => ucfirst($self->{nome}) . " - Spider");
-	$self->{icone} = $self->{janela}->Photo(-file => "spider.bmp");
-	$self->{janela}->Icon(-image => $self->{icone});
-	$self->{janela}->minsize(qw(200 115));
-	$self->{frame1} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{frame2} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{frame3} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{frame4} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{frame5} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{frame6} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
-	$self->{loja1} = $self->{frame1}->Label(-text => "Loja........->")->pack(-side => "left");
-	$self->{prod1} = $self->{frame2}->Label(-text => "Produtos ->")->pack(-side => "left");
-	$self->{erro1} = $self->{frame3}->Label(-text => "Erros...... ->")->pack(-side => "left");
-	$self->{tout1} = $self->{frame4}->Label(-text => "Time out ->")->pack(-side => "left");
-	$self->{stat1} = $self->{frame5}->Label(-text => "Status.... ->")->pack(-side => "left");
-	$self->{loja2} = $self->{frame1}->Label(-text => ucfirst($self->{nome}))->pack(-side => "right");
-	$self->{prod2} = $self->{frame2}->Label(-text => "0")->pack(-side => "right");
-	$self->{erro2} = $self->{frame3}->Label(-text => "0")->pack(-side => "right");
-	$self->{tout2} = $self->{frame4}->Label(-text => "0")->pack(-side => "right");
-	$self->{stat2} = $self->{frame5}->Label(-text => "Iniciando spider...")->pack(-side => "right");
-	$self->{botao} = $self->{frame6}->Button(-text => "Cancelar", -command => sub{$self->{janela}->exit})->pack();
-	$self->{janela}->update;
-	#	MainLoop;
-	# Define CONTADORES
-	$self->{num_ok} = 0;        # produtos incluidos
-	$self->{num_erro} = 0;      # produtos com erro
-	$self->{num_repet} = 0;     # produtos duplicados
-	$self->{num_novos} = 0;     # produtos com status de novo
-	$self->{num_novos_tab} = 0; # produtos realmente novos(captados pela 1ª vez)
-	$self->{num_ver_id1} = 0;   # produtos que seriam associados por código($self->{ver_id} = 0)
-	$self->{num_ver_id2} = 0;   # produtos realmennte associados por código($self->{ver_id} = 1)
-	$self->{num_descart} = 0;   # produtos descartados
-	$self->{num_linhas} = 0;    # linhas do arquivo .CFG
-	$self->{num_timeout} = 0;   # timeout
-	# Define BANCO
-	$self->log('info',"Iniciando processo de captura para ".$self->{name});
-	$self->{stat2}->configure(-text => "Iniciando captura...");
-	$self->{janela}->update;
+	$self->janela_tk;
 	return $self;
 }
-
-
-################################################################################
-################################################################################
-# Recebe uma url como parametro, faz uma requisição p/ ela. Salva o conteúdo da
-# página num arquivo e pode retornar o conteudo da página.
-# flag_retorno -> 1 p/ retornar a pagina; 0 não retorna nada
-# arquivo -> caso queira definir o arquivo onde o conteúdo será gravado.
-#            quando omitido, grava no arquivo padrão $file_html
-#
-# Sintaxe: $string = $self->obter(url, flag_retorna, arquivo, tipo);
 
 sub obter {
 	my $self = shift;
 	my $url = shift;
 	my $attr = shift;
-	print $url.$/;
-	#print Dumper(%attr);
-
 	my ($req, $resposta, $cont, $req_inicio, $req_fim);
 	my $browser = LWP::UserAgent->new();
 	$browser->agent("Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
-	$browser->cookie_jar(HTTP::Cookies->new(file => "cookies.txt", autosave => 1));
+	$browser->cookie_jar(HTTP::Cookies->new(file => ".cookies.txt", autosave => 1));
 	if ($attr)	{
-		use File::Slurp qw/write_file/;
-		write_file('saida.txt',Dumper($attr));
-		print "ATTR";
 		$req = HTTP::Request->new("POST",$url,[%$attr]);
 	}
 	else	{
@@ -122,12 +67,13 @@ sub obter {
 	
 	}
 	$req->headers->header(Referer => $self->{historico});
+	$self->log('info',"Iniciando requisição a url $url");
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $browser->request($req);
-		print "Erro: ".$resposta->status_line.$/;
 		last if ($resposta->is_success());
 		$self->{stat2}->configure(-text => "URL: tentativa " . $cont);
 		$self->{janela}->update;
+		$self->log('debug',"Tentativa $cont, falha: ".$resposta->status_line);
 		sleep(10);
 	}
 	$self->{stat2}->configure(-text => "Capturando entidades...");
@@ -136,7 +82,7 @@ sub obter {
 	if ($resposta->is_success()) {
 		$self->{historico} = $url; # Target da resquicao
 		$self->{base_uri} = $resposta->base; # Base uri, caso haja redirecionamento
-		$self->log('info',"Requisicao ao endereÃo $url realizada com sucesso");
+		$self->log('info',"Requisição realizada com sucesso");
 	} 
 	else {
 		$self->{num_timeout}++;
@@ -147,35 +93,6 @@ sub obter {
 	}
 	return $resposta->content;
 }
-################################################################################
-################################################################################
-# Retira os códigos HTML de qualquer string. Substitui tudo o que estiver
-# dentro dos simbolos "<" e ">" por um espaço em branco.
-#
-# Sintaxe: $string = $self->retira_html($string_com_html);
-sub retira_html {
-	my $self = shift;
-	my $str = $_[0];
-
-	$str =~ s/<(.*?)>/ /ig;
-	$str =~ s/^\s+|\s*$//ig;
-	return $str;
-}
-
-=head2
-
-Usado p/ retirar ou substituir determinados caracteres de strings
-
-=cut
-
-sub dicionario {
-	my $self = shift;
-	my $str = shift;
-	# Decodifica expressões em HTML
-	$str = HTML::Entities::decode_entities($str);
-	return $str;
-}
-
 
 sub spider_dump {
 
@@ -191,19 +108,6 @@ sub spider_dump {
 
 Metodo responsável por tratamento e gerenciamento do log.
 Utiliza a classe Log::Log4perl, instacia esta classe se objeto não estiver instaciado no objeto spider.
-
-Grava o log do diretório '/log/' usando como nome do arquivo o atributo 'nome' definido no objeto spider:
-
-Exemplo de nome do arquivo: 
-
-	$self->{nome} = 'Americanas'; # Nome do spider
-	Nome do arquivo gerado: /log/Americanas.log
-
-Exemplo de formato do arquivo: 
-
-	2008/08/01 14:34:32 - spiders.pm icarros INFO - Requisicao ao endereço http://www.icarros.com.br/icarros/out/shoppingjacotei/ofertas.jsp?pagina=44&ft=1 realizada com sucesso
-
-Sintaxe: $self->log($level,$message);
 
 Os levels(níveis) são divididos na seguinte maneira:
 
@@ -228,6 +132,50 @@ sub log		{
 		$self->{log}->add_appender($appender);
 	}
 	$self->{log}->$level($message);
+}
+
+=head2 
+
+Inicia Janela Tk e contadores
+
+=cut
+
+sub janela_tk	{
+	my $self = shift;
+	# Variáveis do Tk (janela, frames e labels)
+	$self->{janela} = MainWindow->new(-title => ucfirst($self->{name}) . " - Spider");
+	$self->{icone} = $self->{janela}->Photo(-file => "spider.bmp");
+	$self->{janela}->Icon(-image => $self->{icone});
+	$self->{janela}->minsize(qw(200 115));
+	$self->{frame1} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{frame2} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{frame3} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{frame4} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{frame5} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{frame6} = $self->{janela}->Frame(-relief => "groove", -borderwidth => 1)->pack(-fill => "x");
+	$self->{prod1} = $self->{frame2}->Label(-text => "Entidades ->")->pack(-side => "left");
+	$self->{erro1} = $self->{frame3}->Label(-text => "Erros...... ->")->pack(-side => "left");
+	$self->{tout1} = $self->{frame4}->Label(-text => "Time out ->")->pack(-side => "left");
+	$self->{stat1} = $self->{frame5}->Label(-text => "Status.... ->")->pack(-side => "left");
+	$self->{prod2} = $self->{frame2}->Label(-text => "0")->pack(-side => "right");
+	$self->{erro2} = $self->{frame3}->Label(-text => "0")->pack(-side => "right");
+	$self->{tout2} = $self->{frame4}->Label(-text => "0")->pack(-side => "right");
+	$self->{stat2} = $self->{frame5}->Label(-text => "Iniciando spider...")->pack(-side => "right");
+	$self->{botao} = $self->{frame6}->Button(-text => "Cancelar", -command => sub{$self->{janela}->exit})->pack();
+	$self->{janela}->update;
+	#	MainLoop;
+	# Define CONTADORES
+	$self->{num_ok} = 0;        
+	$self->{num_erro} = 0;      
+	$self->{num_timeout} = 0;
+	# Define BANCO
+	$self->log('info',"Iniciando processo de captura para ".$self->{name});
+	$self->{stat2}->configure(-text => "Iniciando captura...");
+	$self->{janela}->update;
+}
+sub encerrar	{
+	my $self = shift;
+	$self->log('info','Spider finalizado com sucesso, '.$self->{num_ok}.' entidades inseridas');
 }
 =head2 ACESSORS
 

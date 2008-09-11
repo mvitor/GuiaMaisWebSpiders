@@ -6,30 +6,26 @@ use Spider::Entidade;
 =head2 get_dados
 
 =cut
-my $c=0;
-my $i=0;
 
 sub get_dados_cat 	{
 	my ($self) = @_;
 	foreach my $cat ($self->cats)	{
-		$c++;
 		my $str_cat = $self->obter($cat->{href});
+		$self->{cat} = $cat->{cat_nome};
 		$self->get_dados_ent($str_cat);
 	}
+	$self->encerra;
 }
-		
 sub get_dados_ent	{		
 	my ($self,$str_cat) = @_;
 	my $tree_page = HTML::TreeBuilder->new_from_content($str_cat);
 	my @ents = $tree_page->look_down(_tag => 'div',class=>'spI');
 	foreach my $ent_html (@ents)	{
-		$i++;
 		my $html = $ent_html->as_HTML;
 		my $tree_ent = HTML::TreeBuilder->new_from_content($html);
 		my $entidade = Spider::Entidade->new();
-		#my ($name,$ahref,$end);
+		$entidade->cat($self->{cat});
 		my ($name,$end);
-		
 		# Nome e url
 		# Diferenciacao pois alguns clientes tem sites, outros nao. A forma de exibicao é difrente.
 		if ((my $ahref = $tree_ent->look_down(_tag=>'a',class=>'txtT')))	{
@@ -72,15 +68,14 @@ sub get_dados_ent	{
 		$entidade->end($end);
 		
 		#Link Url
-		if(my $img = $tree_ent->look_down(_tag=>'img',style=>'border-width:0px;'))	{
+		if(my $img = $tree_ent->look_down(_tag=>'img',sub{$_[0]->as_HTML =~ /images.guiamais.com.br/}))	{
 			$img->as_HTML =~ /src="(.*?)"/i;
-			$entidade->url_logo($url_logo);
+			$entidade->url_logo($1);
 		}
 		$entidade->dump();
 		$entidade->save_csv();
 	}
 	$self->get_paginacao($str_cat);
-	print "Categorias $c Produtos Geral $i".$/;
 }
 sub get_paginacao {
     my $self = shift;
@@ -100,6 +95,4 @@ sub get_paginacao {
 	}
 	$self->get_dados_ent($mech->content);
 }
-
-
 1;
