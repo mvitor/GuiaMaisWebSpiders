@@ -82,33 +82,29 @@ sub get_paginacao {
     my $self = shift;
     my $string = shift;
 	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
+	$form_url =~ s/amp;//g;
     my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
-	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}i || !$self{page})	{
+	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
+		$self->{page}++; # Conta número de paginações
 		my $control = $1;
-		next if $control !~ /^ctl.*/ && $self->{page};
-		print "ok".$/if $control =~ /^ctl.*/;
-		#print "Param ".$1.$/;
-		use Dnd::Agent;
-		my $agent = Dnd::Agent->new;
-		$form_url =~ s/amp;//g;
-		$self->{page}++; # Diferente na primeira pagina
+		print "Page ".$self->{page}.$/;
 		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
-		my $param;
-		if(length($self->{page}) == 1){$self->{page} = '0'.$self->{page};}
-		my $param = 'ctl00$C1$pag1$ctl'.$self->{page};
-		print $param.$/;
+		#if(length($self->{page}) == 1){$self->{page} = '0'.$self->{page};}
+		#my $param = 'ctl00$C1$pag1$ctl'.$self->{page};
+		#print $param.$/;
 		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
 		else{$param = 'ctl00$C1$pag1$ctl02';}
-		$agent->requestPage("http://www.guiamais.com.br/".$form_url,
+		my $newstring = $self->obter_post("http://www.guiamais.com.br/".$form_url,
 							__EVENTTARGET => $param,
 							__EVENTARGUMENT => $self->{page},
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
 		use File::Slurp qw/write_file/;
-		$newstring = $agent->getContent();
+#		$newstring = $agent->getContent();
 		write_file('saida.html',$newstring);
 		$self->get_dados_ent($newstring);
 	}
+	$self->{page} = 0
 }
 1;

@@ -1,7 +1,6 @@
 package Spider;
 
 use strict;
-use warnings;
 use Tk;
 use LWP;
 use HTTP::Cookies;
@@ -74,7 +73,7 @@ sub obter {
 		last if ($resposta->is_success());
 		$self->{stat2}->configure(-text => "URL: tentativa " . $cont);
 		$self->{janela}->update;
-		$self->log('debug',"Tentativa $cont, falha: ".$resposta->status_line);
+		$self->{stat2}->configure(-text => "Falha Http  Restam ".$cont."tentivas"); #".$self->status_line."
 		sleep(10);
 	}
 	$self->{stat2}->configure(-text => "Capturando entidades...");
@@ -94,7 +93,38 @@ sub obter {
 	}
 	return $resposta->content;
 }
+sub obter_post	{
+	my $self = shift;
+	my $url = shift;
+	my %attr = @_;
+	$self->{_browser} = new LWP::UserAgent;
+	$self->{_browser}->agent($self->{agent});
+	$self->{_browser}->cookie_jar(HTTP::Cookies->new(file => ".cookies.txt", autosave => 1));
+	$self->log('info',"Iniciando requisição a url $url");
+	my ($resposta,$cont);
+	for ($cont = 5; $cont > 0; $cont--) {
+		$resposta = $self->{_browser}->request(POST $url, [%attr]);
+		last if ($resposta->is_success());
+		$self->{stat2}->configure(-text => "Falha Http  Restam ".$cont."tentivas"); #".$self->status_line."
+		$self->{janela}->update;
+		$self->log('debug',"Tentativa $cont, falha: ".$resposta->status_line);
+		sleep(10);
+	}
+	if ($resposta->is_success()) {
+		$self->{historico} = $url; # Target da resquicao
+		$self->{base_uri} = $resposta->base; # Base uri, caso haja redirecionamento
+		$self->log('info',"Requisição realizada com sucesso");
+	} 
+	else {
+		$self->{num_timeout}++;
+		$self->{tout2}->configure(-text => $self->{num_timeout});
+		$self->{janela}->update;
+		$self->log('error',"Timeout de numero ".$self->{num_timeout}."com url $url - ERR:".$resposta->message);
+		return 0;
+	}
+	return $resposta->content;
 
+}
 sub spider_dump {
 
 	my $self = shift;
