@@ -84,7 +84,8 @@ sub get_paginacao {
 	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
 	$form_url =~ s/amp;//g;
     my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
-	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
+#	 || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si)
+	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || 1)	{
 		$self->{page}++; # Conta número de paginações
 		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
 		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
@@ -95,6 +96,9 @@ sub get_paginacao {
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
+		use File::Slurp qw/write_file/;
+		write_file('saida.html',$newstring);
+
 		$self->get_dados_ent($newstring);
 	}
 	else{$self->{page} = 0;}

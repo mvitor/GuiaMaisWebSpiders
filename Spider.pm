@@ -1,7 +1,7 @@
 package Spider;
 
 use strict;
-use Tk;
+#use Tk;
 use LWP;
 use HTTP::Cookies;
 use HTTP::Request;
@@ -21,7 +21,7 @@ sub new {
 		$self->{$_} = $attr{$_};
 	}
 	$self->{page} = 0;
-	$self->janela_tk;
+	#$self->janela_tk;
 	return $self;
 }
 
@@ -42,7 +42,6 @@ sub obter {
 	}
 	$req->headers->header(Referer => $self->{historico});
 	$self->log('info',"Iniciando requisição a url $url");
-	sleep(5);
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $browser->request($req);
 		last if ($resposta->is_success());
@@ -51,8 +50,8 @@ sub obter {
 		$self->log('info',"Falha Http: ".$resposta->status_line." Restam ".$cont."tentivas"); 
 		sleep(10);
 	}
-	$self->{stat2}->configure(-text => "Capturando entidades...");
-	$self->{janela}->update;
+	#$self->{stat2}->configure(-text => "Capturando entidades...");
+	#$self->{janela}->update;
 
 	if ($resposta->is_success()) {
 		$self->{historico} = $url; # Target da resquicao
@@ -61,8 +60,8 @@ sub obter {
 	} 
 	else {
 		$self->{num_timeout}++;
-		$self->{tout2}->configure(-text => $self->{num_timeout});
-		$self->{janela}->update;
+#		$self->{tout2}->configure(-text => $self->{num_timeout});
+#		$self->{janela}->update;
 		$self->log('error',"Timeout de numero ".$self->{num_timeout}."com url $url - ERR:".$resposta->message);
 		return 0;
 	}
@@ -80,8 +79,8 @@ sub obter_post	{
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $self->{_browser}->request(POST $url, [%attr]);
 		last if ($resposta->is_success());
-		$self->{stat2}->configure(-text => "Falha Http Restam ".$cont."tentivas"); #".$self->status_line."
-		$self->{janela}->update;
+#		$self->{stat2}->configure(-text => "Falha Http Restam ".$cont."tentivas"); #".$self->status_line."
+#		$self->{janela}->update;
 		$self->log('info',"Falha Http: ".$resposta->status_line." Restam ".$cont."tentivas"); 
 		sleep(10);
 	}
@@ -92,8 +91,8 @@ sub obter_post	{
 	} 
 	else {
 		$self->{num_timeout}++;
-		$self->{tout2}->configure(-text => $self->{num_timeout});
-		$self->{janela}->update;
+#		$self->{tout2}->configure(-text => $self->{num_timeout});
+#		$self->{janela}->update;
 		$self->log('error',"Timeout de numero ".$self->{num_timeout}."com url $url - ERR:".$resposta->message);
 		return 0;
 	}
@@ -192,8 +191,8 @@ sub encerrar	{
 sub num_ok	{
 	my ($self) = @_;
 	$self->{num_ok}++;
-	$self->{prod2}->configure(-text=>$self->{num_ok});
-	$self->{janela}->update;		
+	#$self->{prod2}->configure(-text=>$self->{num_ok});
+	#$self->{janela}->update;		
 }
 sub cats	{
 	my ($self) = @_;
