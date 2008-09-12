@@ -68,6 +68,7 @@ sub obter {
 	}
 	$req->headers->header(Referer => $self->{historico});
 	$self->log('info',"Iniciando requisição a url $url");
+	sleep(5);
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $browser->request($req);
 		last if ($resposta->is_success());
@@ -142,6 +143,7 @@ Inicia Janela Tk e contadores
 
 sub janela_tk	{
 	my $self = shift;
+
 	# Variáveis do Tk (janela, frames e labels)
 	$self->{janela} = MainWindow->new(-title => ucfirst($self->{name}) . " - Spider");
 	$self->{icone} = $self->{janela}->Photo(-file => "spider.bmp");
@@ -180,7 +182,12 @@ sub encerrar	{
 =head2 ACESSORS
 
 =cut
-
+sub num_ok	{
+	my ($self) = @_;
+	$self->{num_ok}++;
+	$self->{prod2}->configure(-text=>$self->{num_ok});
+	$self->{janela}->update;		
+}
 sub cats	{
 	my ($self) = @_;
 	return @{$self->{categorias}};

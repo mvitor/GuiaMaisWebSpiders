@@ -21,7 +21,6 @@ foreach (@cats)	{
 	my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
 	my $cat_name = $_->as_text;
 	$spider->set_cats($cat_name,URL.$cat_href);
-	last;
 }
 
 # Faz captura de dados através de método get_dados

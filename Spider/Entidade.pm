@@ -3,7 +3,8 @@ package Spider::Entidade;
 use Class::CSV;
 use HTML::Entities;
 use base qw(Class::Accessor);
-my @atrr = qw(nome end telefone descricao url url_logo);
+
+my @atrr = qw(nome end telefone descricao categoria url url_logo);
 
 Spider::Entidade->mk_accessors(@atrr);
 
@@ -13,7 +14,7 @@ sub dump	{
 	print "EndereÃo: ".$self->end.$/;
 	print "Telefone: ".$self->telefone.$/;
 	print "Descricao: ".$self->descricao.$/;
-	print "Categoria: ".$self->cat.$/;
+	print "Categoria: ".$self->categoria.$/;
 	print "URL: ".$self->url.$/;
 	print "URL Logotipo: ".$self->url_logo.$/x2;
 }
@@ -22,9 +23,6 @@ sub save_csv	{
 	open my $fh,'>>','entidades.csv';
 	print $fh join ', ', @{$self}{@atrr};print $fh $/;
 	close $fh;
-	$self->{num_ok}++;
-#	$SUPER->{prod2}->configure(-text=>$self->{num_ok});
-#	$self->{janela}->update;		
 }
 sub nome	{
 	my $self = shift;
@@ -41,10 +39,10 @@ sub descricao	{
 	@_ = HTML::Entities::decode_entities(@_);
 	return $self->_descricao_accessor(@_);
 }
-sub cat	{
+sub categoria	{
 	my $self = shift;
 	@_ = HTML::Entities::decode_entities(@_);
-	return $self->_descricao_accessor(@_);
+	return $self->_categoria_accessor(@_);
 }
 sub url	{
 	my $self = shift;
