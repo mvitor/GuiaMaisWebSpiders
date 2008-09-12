@@ -1,6 +1,5 @@
 package Spider::Entidade;
 
-use Class::CSV;
 use HTML::Entities;
 use base qw(Class::Accessor);
 

@@ -17,13 +17,14 @@ my @cats = $tree->look_down(_tag => 'a',class=>'lnk1L');
 
 $spider->log('info',@cats.' categorias localizados'); 
 
+# Grava categorias no objeto
 foreach (@cats)	{
 	my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
 	my $cat_name = $_->as_text;
 	$spider->set_cats($cat_name,URL.$cat_href);
 }
 
-# Faz captura de dados através de método get_dados
+# Faz captura de dados das categorias gravadas 
 $spider->get_dados_cat();
 
 	

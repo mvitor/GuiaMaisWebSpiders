@@ -10,7 +10,7 @@ sub get_dados_cat 	{
 		$self->{cat} = $cat->{name};
 		$self->get_dados_ent($str_cat);
 	}
-	$self->encerra;
+	$self->encerrar;
 }
 sub get_dados_ent	{		
 	my ($self,$str_cat) = @_;
@@ -71,7 +71,7 @@ sub get_dados_ent	{
 			$img = $img->delete;
 		}
 		$tree_ent = $tree_ent->delete;
-		#	$entidade->dump();
+		$entidade->dump();
 		$entidade->save_csv();
 		$self->SUPER::num_ok();
 	}
@@ -86,12 +86,7 @@ sub get_paginacao {
     my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
 	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
 		$self->{page}++; # Conta número de paginações
-		my $control = $1;
-		print "Page ".$self->{page}.$/;
 		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
-		#if(length($self->{page}) == 1){$self->{page} = '0'.$self->{page};}
-		#my $param = 'ctl00$C1$pag1$ctl'.$self->{page};
-		#print $param.$/;
 		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
 		else{$param = 'ctl00$C1$pag1$ctl02';}
 		my $newstring = $self->obter_post("http://www.guiamais.com.br/".$form_url,
@@ -100,11 +95,8 @@ sub get_paginacao {
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
-		use File::Slurp qw/write_file/;
-#		$newstring = $agent->getContent();
-		write_file('saida.html',$newstring);
 		$self->get_dados_ent($newstring);
 	}
-	$self->{page} = 0
+	else{$self->{page} = 0;}
 }
 1;

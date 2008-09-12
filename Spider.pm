@@ -9,31 +9,6 @@ use HTTP::Request::Common;
 use URI::file;
 use HTML::Entities;
 use Log::Log4perl;
-use Data::Dumper;
-=head1 NAME
-
-spiders.pm
-
-=cut
-
-=head1 SYNOPSIS
-
-my $spider = compaq->new(); 
-
-=head1 DESCRIPTION
-
-Classe principal do sistema Robots
-
-=head1 METHODS
-
-=cut
-
-=head2 new
-
-Método construtor
-
-=cut
-
 
 sub new {
 	my $class = shift;
@@ -73,7 +48,7 @@ sub obter {
 		last if ($resposta->is_success());
 		$self->{stat2}->configure(-text => "URL: tentativa " . $cont);
 		$self->{janela}->update;
-		$self->{stat2}->configure(-text => "Falha Http  Restam ".$cont."tentivas"); #".$self->status_line."
+		$self->log('info',"Falha Http: ".$resposta->status_line." Restam ".$cont."tentivas"); 
 		sleep(10);
 	}
 	$self->{stat2}->configure(-text => "Capturando entidades...");
@@ -105,9 +80,9 @@ sub obter_post	{
 	for ($cont = 5; $cont > 0; $cont--) {
 		$resposta = $self->{_browser}->request(POST $url, [%attr]);
 		last if ($resposta->is_success());
-		$self->{stat2}->configure(-text => "Falha Http  Restam ".$cont."tentivas"); #".$self->status_line."
+		$self->{stat2}->configure(-text => "Falha Http Restam ".$cont."tentivas"); #".$self->status_line."
 		$self->{janela}->update;
-		$self->log('debug',"Tentativa $cont, falha: ".$resposta->status_line);
+		$self->log('info',"Falha Http: ".$resposta->status_line." Restam ".$cont."tentivas"); 
 		sleep(10);
 	}
 	if ($resposta->is_success()) {
@@ -205,10 +180,12 @@ sub janela_tk	{
 	$self->{stat2}->configure(-text => "Iniciando captura...");
 	$self->{janela}->update;
 }
+
 sub encerrar	{
 	my $self = shift;
 	$self->log('info','Spider finalizado com sucesso, '.$self->{num_ok}.' entidades inseridas');
 }
+
 =head2 ACESSORS
 
 =cut
