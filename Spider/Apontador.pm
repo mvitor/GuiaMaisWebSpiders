@@ -1,4 +1,4 @@
-package Spider::GuiaMais;
+package Spider::Apontador;
 
 use base 'Spider';
 use Entidades;

@@ -1,10 +1,3 @@
-makefile
-14:33 <maluco> no csv
-14:33 <maluco> coloque em " os campos
-14:33 <maluco> troque a , por ;
-14:33 <maluco> e se tiver " nos dados, faÃ§a um s/"/'/;
-14:33 <maluco> para termos um padrÃ£o no arquivo
-14:34 <maluco> por que da maneira que tÃ¡, separado por ,
-14:34 <maluco> pode criar confusÃ£o, muitos endereÃ§os
-14:34 <maluco> tem , no meio do campo.
-
+-Testar guiamais.
+-Separar bloco de captura de categorias 
+-Capturar entidades um a uma no apontador.
