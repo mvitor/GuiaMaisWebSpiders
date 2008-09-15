@@ -1,111 +1,118 @@
 package Spider::Apontador;
 
+use Entidades::Apontador;
 use base 'Spider';
-use Entidades;
+
+=head2 get_cats
+
+Recebe a home do site e captura as categorias.
+
+=cut
+
+sub get_cats	{
+	my ($self,$string) = @_;
+	my $tree = HTML::TreeBuilder->new_from_content($string);
+	my $cat_list = $tree->look_down(_tag => 'div',class=>'categoriasApontador list');
+	my $tree_cat = HTML::TreeBuilder->new_from_content($cat_list->as_HTML);
+	my @cats = $tree_cat->look_down(_tag => 'a');
+	$self->log('info',@cats.' categorias localizados'); 
+	# Grava categorias no objeto
+	foreach (@cats)	{
+		my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
+		my $cat_name = $_->as_text;
+		$self->set_cats($cat_name,$cat_href);
+	}
+}
+
+=head2 get_dados
+
+Responsavel por percorrer categorias e invocar métodos necessários para captura das entidades
+
+=cut
 
 sub get_dados	{
 	my ($self) = @_;
 	$self->check_files;
-	$self->get_dados_cat;
-	$self->encerrar;
-}
-sub get_dados_cat 	{
-	my ($self) = @_;
 	foreach my $cat ($self->cats)	{
 		my $str_cat = $self->obter($cat->{href});
 		$self->{cat} = $cat->{name};
-		$self->get_dados_ent($str_cat);
+		$self->get_ents($str_cat);
 	}
+	$self->encerrar;
 }
+=head2 get_ents
 
-sub get_dados_ent	{		
+Captura entidades e as percorre
+
+=cut
+
+sub get_ents	{		
 	my ($self,$str_cat) = @_;
-	my $tree_page = HTML::TreeBuilder->new_from_content($str_cat);
-	my @ents = $tree_page->look_down(_tag => 'div',class=>'spI');
+	my $tree_page = HTML::TreeBuilder->new_from_content($str_cat,);
+	my @ents = $tree_page->look_down(_tag => 'div',class=>'results');
 	foreach my $ent_html (@ents)	{
 		my $html = $ent_html->as_HTML;
 		my $tree_ent = HTML::TreeBuilder->new_from_content($html);
-		my $entidade = Entidade->new();
-		$entidade->categoria($self->{cat});
-		my ($name,$end);
-		# Nome e url
-		# Diferenciacao pois alguns clientes tem sites, outros nao. A forma de exibicao é difrente.
-		if ((my $ahref = $tree_ent->look_down(_tag=>'a',class=>'txtT')))	{
-			$entidade->nome($ahref->as_text); # Define atributo nome
-			$ahref->as_HTML =~ /href="(.*?)"/;
-			$entidade->url($1); # Define atributo url
-			$ahref = $ahref->delete;
-		}
-		else	{
-			$name = $tree_ent->look_down(_tag=>'span',class=>'txtT');
-			$name = $name->as_text;
-			#Define atributo nome
-			if (ref($name))	{
-				$entidade->nome($name->as_text);
-			}
-			else{$entidade->nome($name);} 
-		}
-		# Descrição
-		if ((my $desc = $tree_ent->look_down(_tag=>'div',class=>'divInfoBox')))	{
-			$entidade->descricao($desc->as_text);
-		}
-		if ((my $tel = $tree_ent->look_down(_tag=>'div',class=>'divPhoneTxt')))	{
-			$entidade->telefone($tel->as_text);
-			$tel = $tel->delete;
-		}
-		# Endereço
-		if (my $address = $tree_ent->look_down(_tag=>'div',class=>'divAddress'))	{
-			my ($rua) = $address->as_HTML =~ /<span class="CmpInf">(.*?)<\/span>/i;
-			$address = $address->delete;
-			$end .= $rua;
-		}
-		if(my $neighborhood = $tree_ent->look_down(_tag=>'div',class=>'divNeighborHood'))	{
-			my ($bairro) = $neighborhood->as_HTML =~ /<span class="CmpInf">(.*?)<\/span>/i;
-			$neighborhood = $neighborhood->delete;
-			$end .= ' '.$bairro;
-		}
-		if (my $city = $tree_ent->look_down(_tag=>'div',class=>'divCity'))	{
-			my ($cidade) = $city->as_HTML =~ /<span>(.*?)<\/span>/i;
-			$city = $city->delete;
-			$end .= ' '.$cidade;
-		}
-		$entidade->end($end);
-		#Link Url
-		if(my $img = $tree_ent->look_down(_tag=>'img',sub{$_[0]->as_HTML =~ /images.guiamais.com.br/}))	{
-			$img->as_HTML =~ /src="(.*?)"/i;
-			$entidade->url_logo($1);
-			$img = $img->delete;
-		}
+		my $ents_html = $tree_page->look_down(_tag => 'a',style=>'font-size:15px');
+		my ($url) = $ent_html->as_HTML =~ /href="(.*?)"/sigo;
 		$tree_ent = $tree_ent->delete;
-		$entidade->dump();
-		$entidade->save_csv($self->{config});
-		$self->SUPER::num_ok();
+		$self->get_ent_details($url);
 	}
-	$self->get_paginacao($str_cat);
 	$tree_page = $tree_page->delete;
 }
-sub get_paginacao {
-    my $self = shift;
-    my $string = shift;
-	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
-	$form_url =~ s/amp;//g;
-    my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
-	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
-		$self->{page}++; # Conta número de paginações
-		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
-		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
-		else{$param = 'ctl00$C1$pag1$ctl02';}
-		my $newstring = $self->obter_post("http://www.guiamais.com.br/".$form_url,
-							__EVENTTARGET => $param,
-							__EVENTARGUMENT => $self->{page},
-							__VIEWSTATE => $state,
-							__LASTFOCUS => 'ddsds'
-						);
-		use File::Slurp qw/write_file/;
-		write_file('saida.html',$newstring);
 
-		$self->get_dados_ent($newstring);
+=head get_ent_details
+
+Recebe url com entidade faz o parse e insere os detalhes
+
+=cut
+
+sub get_ent_details	{
+	my ($self,$url) = @_;
+	# Inicia objeto que vai armazenar os dados
+	my $entidade = Entidades::Apontador->new();
+	$entidade->categoria($self->{cat});
+	my $string = $self->obter($url);
+	# Separa bloco html com os detalhes
+	my $tree = HTML::TreeBuilder->new_from_content($string);
+	my $details = $tree->look_down(_tag => 'div',style=>'clear:both;');
+	my $def_cont;
+	eval  {$det_cont = $details->as_HTML;};
+	if ($@) {
+		$self->log('error','falha no conteúdo html da descricao do html, arquivo amostra.html salvo p/ amostra');
+		open my $fh,'>',$self->{config}->DataDir.'amostra.html';
+		print $fh 'URL '.$string;
+		next;
 	}
-	else{$self->{page} = 0;}
+	my $telefone;
+	while ($det_cont =~ m{<h3>(.*?)</h3>}sig)	{ # Telefone
+		$telefone .= ' ' if $telefone;
+		$telefone .= $1;
+	}
+	$entidade->telefone($telefone);
+	if($det_cont =~ m{href="(.*)" target="_blank"> http://}si)	{ # Url
+		my $url = $1;
+		$entidade->url($url);
+	}
+	if($det_cont =~ m{<h1>(.*?)</h1>}si)	{ # Nome
+		my $nome = $1;
+		$entidade->nome($nome);
+	}
+	my $end;
+	if ($det_cont =~ m{><br /><b>(.*?)<a}si)	{ # Endereço
+		$end = $1;
+		$ent_html =~ s/<.*>|\s+//g;
+	}
+	if($det_cont =~ m{<u>(.*?)</u>}sig)	{ # Cidade, Estado
+		$end .= " ".$1;
+	}
+	$entidade->end($end);
+	if($det_cont =~ m{<b class="bold">Tag\(s\): </b>(.*?)<br />}sig)	{ # Tags
+		my $tags = $1;
+		$entidade->tags($tags);
+	}
+	$entidade->dump;
+	$entidade->save_csv($self->{config});
+	$self->SUPER::num_ok();
 }
 1;

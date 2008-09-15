@@ -1,7 +1,7 @@
 package Spider::GuiaMais;
 
 use base 'Spider';
-use Entidades;
+use Entidades::Guiamais;
 
 sub get_dados	{
 	my ($self) = @_;
@@ -25,7 +25,7 @@ sub get_dados_ent	{
 	foreach my $ent_html (@ents)	{
 		my $html = $ent_html->as_HTML;
 		my $tree_ent = HTML::TreeBuilder->new_from_content($html);
-		my $entidade = Entidade->new();
+		my $entidade = Entidades::Guiamais->new();
 		$entidade->categoria($self->{cat});
 		my ($name,$end);
 		# Nome e url
