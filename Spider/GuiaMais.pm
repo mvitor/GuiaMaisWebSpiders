@@ -3,6 +3,20 @@ package Spider::GuiaMais;
 use base 'Spider';
 use Entidades::Guiamais;
 
+sub get_cats	{
+	my ($self,$string) = @_;
+	# Captura Categorias e respectivos links
+	my $tree = HTML::TreeBuilder->new_from_content($string);
+	my @cats = $tree->look_down(_tag => 'a',class=>'lnk1L');
+	$self->log('info',@cats.' categorias localizados'); 
+
+	# Grava categorias no objeto
+	foreach (@cats)	{
+		my ($cat_href) = $_->as_HTML =~ /href="(.*?)"/;
+		my $cat_name = $_->as_text;
+		$self->set_cats($cat_name,'http://www.guiamais.com.br/'.$cat_href);
+	}
+}
 sub get_dados	{
 	my ($self) = @_;
 	$self->check_files;
@@ -101,11 +115,73 @@ sub get_paginacao {
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
-		use File::Slurp qw/write_file/;
-		write_file('saida.html',$newstring);
 
 		$self->get_dados_ent($newstring);
 	}
 	else{$self->{page} = 0;}
 }
+sub get_palavra_chave	{
+	my ($self,$string) = @_;
+	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
+	$form_url =~ s/amp;//g;
+    my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
+	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
+		$self->{page}++; # Conta número de paginações
+		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
+		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
+		else{$param = 'ctl00$C1$pag1$ctl02';}
+		print "http://www.guiamais.com.br/".$form_url.$/;
+		my $estados = {
+			'AC' =>579,'AL' => 580
+		};
+		#		'AP','AM','BA','CE','DF','ES','GO','MA','muito','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO');
+		foreach my $estado ( keys %$estados)	{
+			my $url = "http://www.guiamais.com.br/Results.aspx?&ipa=16&npa=TodoslosPaises&nes=$estado&idi=3&txb=restaurante&shr=0&ies=".$estados->{$estado};
+			print $url.$/;
+			my $newstring = $self->obter($url);
+			use File::Slurp qw/write_file/;
+			write_file("saida$estado.html",$newstring);
+		}
+	}
+
+#http://restaurantes.guiamais.com.br/Results.aspx?ica=4834&ipa=16&npa=TodoslosPaises&ies=*&nes=Todos+os+estados&idi=3&txb=restaurante&shr=0
+=cut
+#							__EVENTTARGET => $param,
+#							__EVENTARGUMENT => 1,
+#							__VIEWSTATE => $state,
+#							__LASTFOCUS => 'ddsds',
+#							ctl00_C1_SBCtr_TextBoxWhat => 'restaurante+japones',
+							ica => 34031,
+							npa => 'TodoslosPaises',
+							#ies => '*',
+							ipa => 16,
+#							nes => 'Todos+os+estados',
+							nes => 'SP',
+							idi => 3,
+							txb => 'japones',
+							#			shr => 0
+						);
+=cut						
+	
+#http://www.guiamais.com.br/Handlers/AjaxHandler.ashx?OP=findWordRelate&search=restaurantes&where=&state=SP&country=&lng=&query=sinuca
+=cut
+	
+	use WWW::Mechanize;
+	my $mech = WWW::Mechanize->new();
+	$mech->get('http://www.guiamais.com.br/');
+#http://www.guiamais.com.br/Results.aspx?ica=34031&ipa=16&npa=TodoslosPaises&ies=336&nes=SP&idi=3&txb=japones&shr=0
+#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=336&nes=SP&idi=3&txb=restaurante+japones&shr=0
+	my $newstring = $self->obter_post("http://www.guiamais.com.br/Results.aspx?ipa=16",
+					ica => 34031
+					nes => 'SP',
+					idi => 3,
+					txb => 'restaurante+japones'
+				);
+	
+				use File::Slurp qw/write_file/;
+	write_file('saida.html',$newstring);
+	die;
+#	&nes=AC&idi=3&txb=restaurante+japones&shr=0
+=cut
+}#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=333&nes=RJ&idi=3&txb=restaurante+japones&shr=0
 1;
