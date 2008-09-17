@@ -115,6 +115,8 @@ sub get_paginacao {
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
+		use File::Slurp qw/write_file/;
+		write_file("pagina".$self->{page}.".html",$newstring);
 
 		$self->get_dados_ent($newstring);
 	}
@@ -122,6 +124,8 @@ sub get_paginacao {
 }
 sub get_palavra_chave	{
 	my ($self,$string) = @_;
+	undef $string;
+=cut
 	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
 	$form_url =~ s/amp;//g;
     my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
@@ -131,19 +135,25 @@ sub get_palavra_chave	{
 		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
 		else{$param = 'ctl00$C1$pag1$ctl02';}
 		print "http://www.guiamais.com.br/".$form_url.$/;
-		my $estados = {
-			'AC' =>579,'AL' => 580
-		};
 		#		'AP','AM','BA','CE','DF','ES','GO','MA','muito','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO');
+=cut
+		my $estados = {
+			'AC'=>579,'AL'=>580,'AP'=>581,'AM'=>582,'BA'=>583,'CE'=>584,'DF'=>585,'ES'=>586,
+			'GO'=>587,'MA'=>588,'MS'=>589,'MG'=>560,'PA'=>561,'PB'=>562,'PE'=>562,'PI'=>562,
+			'PR'=>563,'PE'=>581,'RJ'=>562,'RN'=>562,'RS'=>581,'RO'=>562,'RR'=>562,'SC'=>581,
+			'SP'=>562,'SE'=>562,'TO'=>562
+			};
+
 		foreach my $estado ( keys %$estados)	{
+			$self->{cat} = 	'Estado '.$estado;
 			my $url = "http://www.guiamais.com.br/Results.aspx?&ipa=16&npa=TodoslosPaises&nes=$estado&idi=3&txb=restaurante&shr=0&ies=".$estados->{$estado};
 			print $url.$/;
-			my $newstring = $self->obter($url);
+			my $nstring = $self->obter($url);
 			use File::Slurp qw/write_file/;
-			write_file("saida$estado.html",$newstring);
+			write_file("saida$estado.html",$nstring);
+			$self->get_dados_ent($nstring);
 		}
 	}
-
 #http://restaurantes.guiamais.com.br/Results.aspx?ica=4834&ipa=16&npa=TodoslosPaises&ies=*&nes=Todos+os+estados&idi=3&txb=restaurante&shr=0
 =cut
 #							__EVENTTARGET => $param,
@@ -183,5 +193,5 @@ sub get_palavra_chave	{
 	die;
 #	&nes=AC&idi=3&txb=restaurante+japones&shr=0
 =cut
-}#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=333&nes=RJ&idi=3&txb=restaurante+japones&shr=0
+#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=333&nes=RJ&idi=3&txb=restaurante+japones&shr=0
 1;
