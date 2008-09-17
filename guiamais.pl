@@ -8,7 +8,7 @@ use Data::Dumper;
 use constant URL =>  "http://www.guiamais.com.br/";
 # Recebe home
 my $spider = Spider::GuiaMais->new(nome=>'guiamais');
-my $string = $spider->obter(URL); #Recebe home
+#my $string = $spider->obter(URL); #Recebe home
 
 # Captura categoria
 #$spider->get_cats($string);
@@ -16,7 +16,8 @@ my $string = $spider->obter(URL); #Recebe home
 # Faz captura de dados das categorias gravadas 
 #$spider->get_dados();
 
-$spider->get_palavra_chave($string);
+$spider->get_arquivos_palavras('palavras.txt');
+$spider->get_palavra_chave();
 
 
 	

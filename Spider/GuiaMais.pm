@@ -98,100 +98,127 @@ sub get_dados_ent	{
 	$self->get_paginacao($str_cat);
 	$tree_page = $tree_page->delete;
 }
+sub get_arquivos_palavras	{
+	my ($self,$arquivo) = @_;
+	$self->check_files;
+	use File::Slurp qw/slurp/;
+	my $cont = slurp($arquivo);
+	$cont =~ s/ /+/g;
+	my @palavras = split('\n',$cont);
+	$self->{palavras} = \@palavras;
+}
+sub get_dados_ent_pag	{		
+	my ($self,$str_cat) = @_;
+	my $tree_page = HTML::TreeBuilder->new_from_content($str_cat);
+	my @ents = $tree_page->look_down(_tag => 'div',sub {$_[0]->attr('class') =~ m/stI|spI/});
+	foreach my $ent_html (@ents)	{
+		my $html = $ent_html->as_HTML;
+		next if $html =~ /N&atilde;o foram encontrados registros/is;
+		my $tree_ent = HTML::TreeBuilder->new_from_content($html);
+		my $entidade = Entidades::Guiamais->new();
+		$entidade->categoria($self->{cat});
+		my ($name,$end);
+		# Nome e url
+		# Diferenciacao pois alguns clientes tem sites, outros nao. A forma de exibicao é difrente.
+		if ((my $ahref = $tree_ent->look_down(_tag=>'a',sub {$_[0]->attr('class') =~ m/^txtT/})))	{
+			$entidade->nome($ahref->as_text); # Define atributo nome
+			my ($url) = $ahref->as_HTML =~ /href="(.*?)"/;
+			$url =~ s/amp;//g;
+			$url =~ /&web=(.*?)/g;
+			$entidade->url($1); # Define atributo url
+			$ahref = $ahref->delete;
+		}
+		else	{
+			$name = $tree_ent->look_down(_tag=>'span',sub {$_[0]->attr('class') =~ m/^txtT/i});
+			#Define atributo nome
+			if (ref($name))	{
+				$entidade->nome($name->as_text);
+			}
+			else{$entidade->nome($name);} 
+		}
+		# Descricao
+		if ((my $desc = $tree_ent->look_down(_tag=>'div',class=>'CmpInf')))	{
+			$entidade->categoria($desc->as_text);
+		}
+		if ((my $desc = $tree_ent->look_down(_tag=>'span',class=>'CmpInf')))	{
+			$entidade->categoria($desc->as_text);
+		}
+		if ((my $tel = $tree_ent->look_down(_tag=>'div',sub {$_[0]->attr('class') =~ m/divPhoneTxt|divContact/})))	{
+			my $tels = $tel->as_text;
+			$tels =~ s/[A-Za-z]+//g; # Retira caracteres inuteis
+			$entidade->telefone($tels);
+			$tel = $tel->delete;
+		}
+		# Endereço
+		if (my $address = $tree_ent->look_down(_tag=>'span',class=>'divAddress'))	{
+			my ($rua) = $address->as_HTML =~ /<span class="CmpInf">(.*?)<\/span>/i;
+			$address = $address->delete;
+			$end .= $rua;
+		}
+		if(my $neighborhood = $tree_ent->look_down(_tag=>'div',class=>'divNeighborHood'))	{
+			my ($bairro) = $neighborhood->as_HTML =~ /<span class="CmpInf">(.*?)<\/span>/i;
+			$neighborhood = $neighborhood->delete;
+			$end .= ' '.$bairro;
+		}
+		if (my $city = $tree_ent->look_down(_tag=>'div',class=>'divCity'))	{
+			my ($cidade) = $city->as_HTML =~ /<span>(.*?)<\/span>/i;
+			$city = $city->delete;
+			$end .= ' '.$cidade;
+		}
+		$entidade->end($end);
+		#Link Url
+		if(my $img = $tree_ent->look_down(_tag=>'img',sub{$_[0]->as_HTML =~ /images.guiamais.com.br/}))	{
+			$img->as_HTML =~ /src="(.*?)"/i;
+			$entidade->url_logo($1);
+			$img = $img->delete;
+		}
+		$tree_ent = $tree_ent->delete;
+		$entidade->dump();
+		$entidade->save_csv($self->{config});
+		$self->SUPER::num_ok();
+
+	}
+	$self->get_paginacao($str_cat);
+	$tree_page = $tree_page->delete;
+}
+
 sub get_paginacao {
     my $self = shift;
     my $string = shift;
 	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
 	$form_url =~ s/amp;//g;
-    my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
+	my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
 	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
 		$self->{page}++; # Conta número de paginações
 		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
 		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
 		else{$param = 'ctl00$C1$pag1$ctl02';}
-		my $newstring = $self->obter_post("http://www.guiamais.com.br/".$form_url,
+		my $newstring = $self->obter_post("http://restaurantes.guiamais.com.br/".$form_url,
 							__EVENTTARGET => $param,
 							__EVENTARGUMENT => $self->{page},
 							__VIEWSTATE => $state,
 							__LASTFOCUS => 'ddsds'
 						);
-		use File::Slurp qw/write_file/;
-		write_file("pagina".$self->{page}.".html",$newstring);
-
-		$self->get_dados_ent($newstring);
+		$self->get_dados_ent_pag($newstring);
 	}
 	else{$self->{page} = 0;}
 }
 sub get_palavra_chave	{
-	my ($self,$string) = @_;
-	undef $string;
-=cut
-	my ($form_url) = $string =~ /<form name="aspnetForm" method="post" action="(.*?)"/sig;
-	$form_url =~ s/amp;//g;
-    my ($state) = $string =~ m{<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="(.+?)"}ig;
-	if ($string =~ m{(ctl00\$C1\$pag1\$ctl02)}si || !$self->{page} || ($self->{page} && m{(ctl00\$C1\$pag1\$ctl01)}si))	{
-		$self->{page}++; # Conta número de paginações
-		$self->log('info','Capturando pagina '.$self->{page}.' Categoria '.$self->{cat});
-		if ($self->{page}==1)	{$param = 'ctl00$C1$pag1$ctl01';}
-		else{$param = 'ctl00$C1$pag1$ctl02';}
-		print "http://www.guiamais.com.br/".$form_url.$/;
-		#		'AP','AM','BA','CE','DF','ES','GO','MA','muito','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO');
-=cut
+	my ($self) = @_;
+	foreach my $expr (@{$self->{palavras}})	{
 		my $estados = {
-			'AC'=>579,'AL'=>580,'AP'=>581,'AM'=>582,'BA'=>583,'CE'=>584,'DF'=>585,'ES'=>586,
-			'GO'=>587,'MA'=>588,'MS'=>589,'MG'=>560,'PA'=>561,'PB'=>562,'PE'=>562,'PI'=>562,
-			'PR'=>563,'PE'=>581,'RJ'=>562,'RN'=>562,'RS'=>581,'RO'=>562,'RR'=>562,'SC'=>581,
-			'SP'=>562,'SE'=>562,'TO'=>562
+			'AC'=>579,'AL'=>580,'AP'=>581,'AM'=>325,'BA'=>326,'CE'=>582,'DF'=>327,'ES'=>328,
+			'GO'=>329,'MA'=>584,'MT'=>587,'MS'=>586,'MG'=>585,'PA'=>330,'PB'=>588,'PI'=>590,
+			'PR'=>331,'MS'=>586,'RJ'=>333,'RN'=>591,'RS'=>334,'RO'=>592,'RR'=>593,'SC'=>335,
+			'SP'=>336,'SE'=>594,'TO'=>595
 			};
-
-		foreach my $estado ( keys %$estados)	{
+		foreach my $estado ( sort keys %$estados)	{
 			$self->{cat} = 	'Estado '.$estado;
-			my $url = "http://www.guiamais.com.br/Results.aspx?&ipa=16&npa=TodoslosPaises&nes=$estado&idi=3&txb=restaurante&shr=0&ies=".$estados->{$estado};
+			my $url = "http://www.guiamais.com.br/Results.aspx?&ipa=16&npa=TodoslosPaises&nes=$estado&idi=3&txb=$expr&shr=0&ies=".$estados->{$estado};
 			print $url.$/;
 			my $nstring = $self->obter($url);
-			use File::Slurp qw/write_file/;
-			write_file("saida$estado.html",$nstring);
-			$self->get_dados_ent($nstring);
+			$self->get_dados_ent_pag($nstring);
 		}
 	}
-#http://restaurantes.guiamais.com.br/Results.aspx?ica=4834&ipa=16&npa=TodoslosPaises&ies=*&nes=Todos+os+estados&idi=3&txb=restaurante&shr=0
-=cut
-#							__EVENTTARGET => $param,
-#							__EVENTARGUMENT => 1,
-#							__VIEWSTATE => $state,
-#							__LASTFOCUS => 'ddsds',
-#							ctl00_C1_SBCtr_TextBoxWhat => 'restaurante+japones',
-							ica => 34031,
-							npa => 'TodoslosPaises',
-							#ies => '*',
-							ipa => 16,
-#							nes => 'Todos+os+estados',
-							nes => 'SP',
-							idi => 3,
-							txb => 'japones',
-							#			shr => 0
-						);
-=cut						
-	
-#http://www.guiamais.com.br/Handlers/AjaxHandler.ashx?OP=findWordRelate&search=restaurantes&where=&state=SP&country=&lng=&query=sinuca
-=cut
-	
-	use WWW::Mechanize;
-	my $mech = WWW::Mechanize->new();
-	$mech->get('http://www.guiamais.com.br/');
-#http://www.guiamais.com.br/Results.aspx?ica=34031&ipa=16&npa=TodoslosPaises&ies=336&nes=SP&idi=3&txb=japones&shr=0
-#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=336&nes=SP&idi=3&txb=restaurante+japones&shr=0
-	my $newstring = $self->obter_post("http://www.guiamais.com.br/Results.aspx?ipa=16",
-					ica => 34031
-					nes => 'SP',
-					idi => 3,
-					txb => 'restaurante+japones'
-				);
-	
-				use File::Slurp qw/write_file/;
-	write_file('saida.html',$newstring);
-	die;
-#	&nes=AC&idi=3&txb=restaurante+japones&shr=0
-=cut
-#	http://restaurantes.guiamais.com.br/Results.aspx?ica=15544&ipa=16&npa=TodoslosPaises&ies=333&nes=RJ&idi=3&txb=restaurante+japones&shr=0
+}
 1;
